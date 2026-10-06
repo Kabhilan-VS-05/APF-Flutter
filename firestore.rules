@@ -1,0 +1,220 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection rules
+    match /users/{userId} {
+      allow read: if request.auth != null && 
+                  (request.auth.uid == userId || 
+                   isUserTherapist(request.auth.uid)); // Allow therapists to read all users
+      
+      allow write: if request.auth != null && 
+                   (request.auth.uid == userId || 
+                    (request.method == 'create' && 
+                     request.auth.uid == userId));
+    }
+    
+    // Allow list access for getting therapist list and duplicate checking
+    match /users {
+      allow list: if request.auth != null; // Allow any authenticated user to list users for therapist selection
+    }
+    
+    // Children collection rules
+    match /children/{childId} {
+      // Allow read if user is authenticated and is either:
+      // - The parent of this child
+      // - Any therapist (can view all children)
+      allow read: if request.auth != null && 
+                  (resource.data.parentId == request.auth.uid || 
+                   isUserTherapist(request.auth.uid));
+      
+      // Allow write if user is authenticated and is the parent of this child
+      allow write: if request.auth != null && 
+                  resource.data.parentId == request.auth.uid;
+      
+      // Allow create if user is authenticated and is either:
+      // - A parent creating their own child (with max 3 children limit)
+      // - A therapist creating a child for any parent
+      allow create: if request.auth != null && 
+                    ((isUserParent(request.auth.uid) &&
+                      request.resource.data.parentId == request.auth.uid) ||
+                     isUserTherapist(request.auth.uid));
+      
+      // Allow update if user is the parent of this child
+      allow update: if request.auth != null && 
+                    resource.data.parentId == request.auth.uid;
+      
+      // Delete only allowed by parent
+      allow delete: if request.auth != null && 
+                    resource.data.parentId == request.auth.uid;
+    }
+    
+    // Therapist notes collection
+    match /children/{childId}/notes/{noteId} {
+      // Allow read if user is authenticated and is either:
+      // - The parent of this child
+      // - Any therapist
+      allow read: if request.auth != null && 
+                  (get(/databases/$(database)/documents/children/$(childId)).data.parentId == request.auth.uid ||
+                   isUserTherapist(request.auth.uid));
+      
+      // Allow write (create/update) only by therapists
+      allow write: if request.auth != null && isUserTherapist(request.auth.uid);
+      
+      // Delete only by therapist who created the note
+      allow delete: if request.auth != null && 
+                    isUserTherapist(request.auth.uid) &&
+                    resource.data.therapistId == request.auth.uid;
+    }
+    
+    // Progress tracking collection rules
+    match /progress/{progressId} {
+      // Allow read if user is authenticated and has access to the child
+      allow read: if request.auth != null && 
+                  hasAccessToChild(request.auth.uid, resource.data.childId);
+      
+      // Allow write if user is authenticated and is either:
+      // - The parent of the child
+      // - The therapist assigned to the child
+      allow write: if request.auth != null && 
+                   (isParentOfChild(request.auth.uid, resource.data.childId) || 
+                    isTherapistOfChild(request.auth.uid, resource.data.childId));
+    }
+    
+    // Therapy sessions collection rules
+    match /therapy_sessions/{sessionId} {
+      // Allow read if user is authenticated and has access to the child
+      allow read: if request.auth != null && 
+                  hasAccessToChild(request.auth.uid, resource.data.childId);
+      
+      // Allow write if user is authenticated and is the therapist
+      allow write: if request.auth != null && 
+                   isTherapistOfChild(request.auth.uid, resource.data.childId);
+      
+      // Allow create if user is authenticated and is a therapist
+      allow create: if request.auth != null && isUserTherapist(request.auth.uid);
+    }
+    
+    // Reports collection rules
+    match /reports/{reportId} {
+      // Allow read if user is authenticated and is either:
+      // - Has access to the child (assigned therapist or parent)
+      // - Is the therapist who created the report
+      // - Is any therapist reading therapist assessments
+      allow read: if request.auth != null && 
+                  (hasAccessToChild(request.auth.uid, resource.data.childId) ||
+                   resource.data.therapistId == request.auth.uid ||
+                   (isUserTherapist(request.auth.uid) && resource.data.status == 'therapist_assessment'));
+      
+      // Allow write if user is authenticated and is either:
+      // - The parent of the child
+      // - Any therapist (therapists can create reports for any child)
+      allow write: if request.auth != null && 
+                   (isParentOfChild(request.auth.uid, resource.data.childId) || 
+                    isUserTherapist(request.auth.uid));
+    }
+    
+    // Notifications collection rules
+    match /notifications/{notificationId} {
+      // Allow read if user is the owner
+      allow read: if request.auth != null && 
+                  resource.data.userId == request.auth.uid;
+      
+      // Allow create if user is authenticated
+      allow create: if request.auth != null;
+      
+      // Allow update if user is the owner or therapist
+      allow update: if request.auth != null && 
+                    (resource.data.userId == request.auth.uid ||
+                     isUserTherapist(request.auth.uid));
+      
+      // Allow delete if user is the owner
+      allow delete: if request.auth != null && 
+                    resource.data.userId == request.auth.uid;
+    }
+    
+    // Parent Questions collection rules
+    match /parent_questions/{questionId} {
+      // Allow read if user is authenticated and has access to the child
+      allow read: if request.auth != null && 
+                  (hasAccessToChild(request.auth.uid, resource.data.childId) ||
+                   resource.data.therapistId == request.auth.uid);
+      
+      // Allow create if user is authenticated and is a therapist
+      allow create: if request.auth != null && isUserTherapist(request.auth.uid);
+      
+      // Allow update if user is authenticated and is either:
+      // - The therapist who created the questions
+      // - The parent of the child (for answering)
+      allow update: if request.auth != null && 
+                   (resource.data.therapistId == request.auth.uid ||
+                    isParentOfChild(request.auth.uid, resource.data.childId));
+      
+      // Delete only by therapist who created
+      allow delete: if request.auth != null && 
+                    resource.data.therapistId == request.auth.uid;
+    }
+    
+    // Feedback collection rules
+    match /feedback/{feedbackId} {
+      // Allow read if user is authenticated and has access to the child
+      allow read: if request.auth != null && 
+                  (hasAccessToChild(request.auth.uid, resource.data.childId) ||
+                   resource.data.parentId == request.auth.uid ||
+                   resource.data.therapistId == request.auth.uid);
+      
+      // Allow create if user is authenticated and is either:
+      // - A parent creating feedback for their child
+      // - A therapist creating feedback for a child they have access to
+      allow create: if request.auth != null && 
+                    ((isUserParent(request.auth.uid) && 
+                      request.resource.data.parentId == request.auth.uid &&
+                      isParentOfChild(request.auth.uid, request.resource.data.childId)) ||
+                     (isUserTherapist(request.auth.uid) && 
+                      request.resource.data.therapistId == request.auth.uid &&
+                      (hasAccessToChild(request.auth.uid, request.resource.data.childId) ||
+                       isUserTherapist(request.auth.uid))));
+      
+      // Allow update if user is authenticated and is either:
+      // - The parent who created the feedback
+      // - The therapist who created the feedback
+      allow update: if request.auth != null && 
+                    (resource.data.parentId == request.auth.uid ||
+                     resource.data.therapistId == request.auth.uid);
+      
+      // Allow delete if user is authenticated and is either:
+      // - The parent who created the feedback
+      // - The therapist who created the feedback
+      allow delete: if request.auth != null && 
+                    (resource.data.parentId == request.auth.uid ||
+                     resource.data.therapistId == request.auth.uid);
+    }
+    
+    // Helper functions
+    function isUserParent(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) && 
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'Parent';
+    }
+    
+    function isUserTherapist(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) && 
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'Therapist';
+    }
+    
+    function isParentOfChild(userId, childId) {
+      return isUserParent(userId) && 
+             exists(/databases/$(database)/documents/children/$(childId)) &&
+             get(/databases/$(database)/documents/children/$(childId)).data.parentId == userId;
+    }
+    
+    function isTherapistOfChild(userId, childId) {
+      return isUserTherapist(userId) && 
+             exists(/databases/$(database)/documents/children/$(childId)) &&
+             get(/databases/$(database)/documents/children/$(childId)).data.therapistId == userId;
+    }
+    
+    function hasAccessToChild(userId, childId) {
+      return isParentOfChild(userId, childId) || isTherapistOfChild(userId, childId);
+    }
+  }
+}

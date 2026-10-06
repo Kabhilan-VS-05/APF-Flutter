@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "796509243458",
+    "project_id": "aura-track-64a04",
+    "storage_bucket": "aura-track-64a04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796509243458:android:54e9daadb25740454ec5db",
+        "android_client_info": {
+          "package_name": "aura.track"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLtzHWQlfmcSC-1dEVtr27pTlqaloXznM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
