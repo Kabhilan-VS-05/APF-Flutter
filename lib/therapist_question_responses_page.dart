@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
 import 'services/pdf_service.dart';
+import 'theme/app_theme.dart';
 
 class TherapistQuestionResponsesPage extends StatefulWidget {
   const TherapistQuestionResponsesPage({super.key});
@@ -178,40 +179,86 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Parent Responses'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Parent Questionnaire Submissions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.secondary))
           : Column(
               children: [
                 // Child Selection and Date Filters
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.grey[100],
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
                   child: Column(
                     children: [
-                      // Child Selection - Always show
-                      DropdownButtonFormField<String>(
-                        value: _selectedChildId,
-                        decoration: const InputDecoration(
-                          labelText: 'Select Child',
-                          border: OutlineInputBorder(),
+                      // Child Selection
+                      DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedChildId,
+                          decoration: InputDecoration(
+                            labelText: 'Patient Profile Filter',
+                            labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            filled: true,
+                            fillColor: AppTheme.surfaceSubtle,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                              borderSide: BorderSide(color: AppTheme.border),
+                            ),
+                            enabledBorder: const OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                              borderSide: BorderSide(color: AppTheme.border),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                              borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
+                            ),
+                          ),
+                          items: _children.map((child) {
+                            return DropdownMenuItem<String>(
+                              value: child['id'],
+                              child: Text(
+                                child['name'] ?? 'Unnamed',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (childId) {
+                            setState(() {
+                              _selectedChildId = childId;
+                            });
+                            _loadQuestionSets();
+                          },
                         ),
-                        items: _children.map((child) {
-                          return DropdownMenuItem<String>(
-                            value: child['id'],
-                            child: Text(child['name']),
-                          );
-                        }).toList(),
-                        onChanged: (childId) {
-                          setState(() {
-                            _selectedChildId = childId;
-                          });
-                          _loadQuestionSets();
-                        },
                       ),
                       
                       const SizedBox(height: 12),
@@ -222,23 +269,27 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
                           Expanded(
                             child: InkWell(
                               onTap: _selectStartDate,
+                              borderRadius: BorderRadius.zero,
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: AppTheme.border),
+                                  borderRadius: BorderRadius.zero,
+                                  color: AppTheme.surfaceSubtle,
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.calendar_today, size: 16),
+                                    const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.textMuted),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         _startDate != null 
-                                            ? 'From: ${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
                                             : 'From Date',
                                         style: TextStyle(
-                                          color: _startDate != null ? Colors.black : Colors.grey,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: _startDate != null ? AppTheme.textPrimary : AppTheme.textMuted,
                                         ),
                                       ),
                                     ),
@@ -251,23 +302,27 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
                           Expanded(
                             child: InkWell(
                               onTap: _selectEndDate,
+                              borderRadius: BorderRadius.zero,
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: AppTheme.border),
+                                  borderRadius: BorderRadius.zero,
+                                  color: AppTheme.surfaceSubtle,
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.calendar_today, size: 16),
+                                    const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.textMuted),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         _endDate != null 
-                                            ? 'To: ${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                                            ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
                                             : 'To Date',
                                         style: TextStyle(
-                                          color: _endDate != null ? Colors.black : Colors.grey,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: _endDate != null ? AppTheme.textPrimary : AppTheme.textMuted,
                                         ),
                                       ),
                                     ),
@@ -276,34 +331,41 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: _clearFilters,
-                            child: const Text('Clear'),
-                          ),
+                          if (_startDate != null || _endDate != null) ...[
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: _clearFilters,
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.accentRose,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                              child: const Text('Reset', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                            ),
+                          ],
                         ],
                       ),
                       
                       // Filter Summary
                       if (_startDate != null || _endDate != null)
                         Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          padding: const EdgeInsets.all(8),
+                          margin: const EdgeInsets.only(top: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.blue[200]!),
+                            color: AppTheme.secondaryLight.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.zero,
+                            border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.filter_list, size: 16, color: Colors.blue[700]),
+                              const Icon(Icons.filter_list, size: 14, color: AppTheme.secondary),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Showing ${_filteredQuestionSets.length} of ${_questionSets.length} responses',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue[700],
+                                  'Showing ${_filteredQuestionSets.length} of ${_questionSets.length} filtered records',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.secondary,
                                   ),
                                 ),
                               ),
@@ -317,36 +379,58 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
                 // Responses List
                 Expanded(
                   child: _filteredQuestionSets.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.question_answer,
-                                size: 64,
-                                color: Colors.grey,
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(28),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(28),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surface,
+                                borderRadius: BorderRadius.zero,
+                                border: Border.all(color: AppTheme.border),
                               ),
-                              SizedBox(height: 16),
-                              Text(
-                                'No parent responses found',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.secondaryLight,
+                                      border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.mark_chat_read_outlined,
+                                      size: 36,
+                                      color: AppTheme.secondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  const Text(
+                                    'No Parent Submissions Found',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'When parents submit answers to clinical questionnaires, their responses and feedback will appear here.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.textSecondary,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Try adjusting your filters or check back later',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                            ),
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(20),
                           itemCount: _filteredQuestionSets.length,
                           itemBuilder: (context, index) {
                             final questionSet = _filteredQuestionSets[index];
@@ -364,64 +448,84 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
     final date = respondedAt?.toDate() ?? DateTime.now();
     final isHierarchical = questionSet['type'] == 'hierarchical';
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 3,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
       child: InkWell(
         onTap: () => _showDetailedResponse(questionSet),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green, width: 2),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isHierarchical ? 'Hierarchical Questions Answered' : 'Parent Response Available',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF003366),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'For: ${questionSet['childName']}',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+        borderRadius: BorderRadius.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isHierarchical ? AppTheme.accentPurpleLight : AppTheme.secondaryLight,
+                      borderRadius: BorderRadius.zero,
+                      border: Border.all(
+                        color: (isHierarchical ? AppTheme.accentPurple : AppTheme.secondary).withValues(alpha: 0.3),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isHierarchical ? Colors.blue : Colors.green,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isHierarchical ? 'HIERARCHICAL' : 'ANSWERED',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                    child: Icon(
+                      isHierarchical ? Icons.account_tree_outlined : Icons.checklist_rounded,
+                      color: isHierarchical ? AppTheme.accentPurple : AppTheme.secondary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isHierarchical ? 'Hierarchical Observations' : 'Parent Questionnaire Response',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Patient: ${questionSet['childName']}',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isHierarchical ? AppTheme.accentPurple : AppTheme.secondary,
+                      borderRadius: BorderRadius.zero,
+                    ),
+                    child: Text(
+                      isHierarchical ? 'BRANCHED' : 'COMPLETED',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
                 
                 // Summary of Q&A
                 Text(
@@ -501,8 +605,7 @@ class _TherapistQuestionResponsesPageState extends State<TherapistQuestionRespon
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   void _showDetailedResponse(Map<String, dynamic> questionSet) {

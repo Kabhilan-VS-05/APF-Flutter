@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 class ParentHierarchicalQuestionResponsePage extends StatefulWidget {
   const ParentHierarchicalQuestionResponsePage({super.key});
@@ -259,13 +260,30 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Answer Questions'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Answer Questions',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : _currentQuestionSet != null
               ? _buildQuestionAnsweringView()
               : _buildQuestionSetsList(),
@@ -277,25 +295,35 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
       children: [
         // Child Selection Header
         Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.grey[100],
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: const BoxDecoration(
+            color: AppTheme.surface,
+            border: Border(bottom: BorderSide(color: AppTheme.border, width: 1)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Select Child:',
+                'SELECT PATIENT CHILD',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF003366),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: AppTheme.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedChildId,
+                style: const TextStyle(fontSize: 14.5, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
                 decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  filled: true,
+                  fillColor: AppTheme.surfaceSubtle,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.border)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
                 ),
                 items: _children.map((child) {
                   return DropdownMenuItem<String>(
@@ -317,33 +345,47 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
         // Question Sets List
         Expanded(
           child: _questionSets.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.inbox,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'No pending questions',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryLight,
+                            borderRadius: BorderRadius.zero,
+                            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2), width: 1.2),
+                          ),
+                          child: const Icon(
+                            Icons.assignment_turned_in_outlined,
+                            size: 36,
+                            color: AppTheme.primary,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Check back later for new questions from your therapist',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        const SizedBox(height: 18),
+                        const Text(
+                          'No Pending Questions',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Check back later for new questionnaires from your therapist.',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: AppTheme.textSecondary,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -351,27 +393,40 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
                   itemCount: _questionSets.length,
                   itemBuilder: (context, index) {
                     final questionSet = _questionSets[index];
-                    return Card(
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.zero,
+                        border: Border.all(color: AppTheme.border),
+                        boxShadow: AppTheme.cardShadow,
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(18),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: const Color(0xFF003366),
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryLight,
+                                    borderRadius: BorderRadius.zero,
+                                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                                  ),
+                                  alignment: Alignment.center,
                                   child: Text(
                                     questionSet['childName']?.toString().substring(0, 1).toUpperCase() ?? 'C',
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: AppTheme.primary,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 18,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,21 +436,22 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF003366),
+                                          color: AppTheme.textPrimary,
                                         ),
                                       ),
+                                      const SizedBox(height: 2),
                                       Text(
                                         'From: ${questionSet['therapistName'] ?? 'Therapist'}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          color: AppTheme.textSecondary,
                                         ),
                                       ),
                                       Text(
                                         'Sent: ${_formatDate(questionSet['sentAt'])}',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey[600],
+                                          color: AppTheme.textMuted,
                                         ),
                                       ),
                                     ],
@@ -403,24 +459,32 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             Text(
                               '${(questionSet['questions'] as List).length} main questions',
                               style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
+                                fontSize: 13,
+                                color: AppTheme.textSecondary,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             SizedBox(
                               width: double.infinity,
+                              height: 44,
                               child: ElevatedButton(
                                 onPressed: () => _startQuestionAnswering(questionSet),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF003366),
+                                  backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
                                 ),
-                                child: const Text('Start Answering'),
+                                child: const Text(
+                                  'Start Answering',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
                               ),
                             ),
                           ],
@@ -466,84 +530,96 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
           // Progress indicator
           LinearProgressIndicator(
             value: (_currentMainQuestionIndex + 1) / _currentQuestionSet!['questions'].length,
-            backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF003366)),
+            backgroundColor: AppTheme.surfaceSubtle,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
           ),
           const SizedBox(height: 8),
           Text(
             'Question ${_currentMainQuestionIndex + 1} of ${_currentQuestionSet!['questions'].length}',
             style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
+              fontSize: 13,
+              color: AppTheme.textSecondary,
             ),
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           
-          // Question
+          // Question Card
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: const Color(0xFF003366),
-              borderRadius: BorderRadius.circular(12),
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.zero,
+              border: const Border(
+                top: BorderSide(color: AppTheme.primary, width: 3),
+                left: BorderSide(color: AppTheme.border),
+                right: BorderSide(color: AppTheme.border),
+                bottom: BorderSide(color: AppTheme.border),
+              ),
+              boxShadow: AppTheme.cardShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
+                    color: AppTheme.primaryLight,
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
                   ),
                   child: const Text(
                     'MAIN QUESTION',
                     style: TextStyle(
-                      color: Color(0xFF003366),
-                      fontSize: 10,
+                      color: AppTheme.primary,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Text(
                   mainQuestion['text'] ?? '',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppTheme.textPrimary,
                     fontSize: 18,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           
           // Answer options
           const Text(
             'Your Answer:',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
+              color: AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: ElevatedButton(
               onPressed: () => _answerMainQuestion('Yes'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: AppTheme.success,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.all(16),
+                elevation: 0,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
               child: const Text(
                 'Yes',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -552,14 +628,17 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
           
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: OutlinedButton(
               onPressed: () => _answerMainQuestion('No'),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
+                backgroundColor: AppTheme.surface,
+                side: const BorderSide(color: AppTheme.border, width: 1.2),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
               child: const Text(
                 'No',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
               ),
             ),
           ),
@@ -570,12 +649,9 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
             width: double.infinity,
             child: TextButton(
               onPressed: _skipToNextMainQuestion,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
               child: const Text(
                 'Skip this question',
-                style: TextStyle(fontSize: 14),
+                style: TextStyle(fontSize: 14, color: AppTheme.textMuted),
               ),
             ),
           ),
@@ -589,137 +665,158 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
     final TextEditingController _textController = TextEditingController();
     
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Progress indicator for subquestions
           LinearProgressIndicator(
             value: (_currentSubQuestionIndex + 1) / totalSubQuestions,
-            backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+            backgroundColor: AppTheme.surfaceSubtle,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
           ),
           const SizedBox(height: 8),
           Text(
             'Subquestion ${_currentSubQuestionIndex + 1} of $totalSubQuestions',
             style: const TextStyle(
-              fontSize: 14,
-              color: Colors.blue,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primary,
             ),
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           
-          // Question
+          // Question Card
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[200]!),
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.zero,
+              border: const Border(
+                top: BorderSide(color: AppTheme.primary, width: 3),
+                left: BorderSide(color: AppTheme.border),
+                right: BorderSide(color: AppTheme.border),
+                bottom: BorderSide(color: AppTheme.border),
+              ),
+              boxShadow: AppTheme.cardShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: BorderRadius.circular(4),
+                    color: AppTheme.primaryLight,
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
                   ),
                   child: const Text(
                     'SUBQUESTION',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
+                      color: AppTheme.primary,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Text(
                   subQuestion['text'] ?? '',
                   style: const TextStyle(
-                    color: Color(0xFF003366),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           
           // Answer options
           const Text(
             'Your Answer:',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
+              color: AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           
           // Text field for detailed answer
           TextField(
             controller: _textController,
             maxLines: 4,
+            style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
             decoration: const InputDecoration(
               hintText: 'Enter your detailed answer here...',
-              border: OutlineInputBorder(),
+              border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: AppTheme.surface,
             ),
-            style: const TextStyle(fontSize: 16),
           ),
           
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
           // Action buttons
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    final answer = _textController.text.trim();
-                    if (answer.isNotEmpty) {
-                      _answerSubQuestion(answer);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter an answer'),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF003366),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(16),
-                  ),
-                  child: Text(
-                    _currentSubQuestionIndex < totalSubQuestions - 1 
-                        ? 'Next Question' 
-                        : 'Finish Subquestions',
-                    style: const TextStyle(fontSize: 16),
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final answer = _textController.text.trim();
+                      if (answer.isNotEmpty) {
+                        _answerSubQuestion(answer);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter an answer'),
+                            backgroundColor: AppTheme.warning,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    ),
+                    child: Text(
+                      _currentSubQuestionIndex < totalSubQuestions - 1 
+                          ? 'Next Question' 
+                          : 'Finish Subquestions',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              OutlinedButton(
-                onPressed: () {
-                  _answerSubQuestion('Skipped');
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                ),
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(fontSize: 16),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () {
+                    _answerSubQuestion('Skipped');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: AppTheme.surface,
+                    side: const BorderSide(color: AppTheme.border, width: 1.2),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  ),
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(fontSize: 15, color: AppTheme.textSecondary),
+                  ),
                 ),
               ),
             ],
@@ -731,30 +828,39 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
 
   Widget _buildCompletionScreen() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.check_circle,
-            size: 80,
-            color: Colors.green,
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppTheme.successLight,
+              borderRadius: BorderRadius.zero,
+              border: Border.all(color: AppTheme.success.withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: const Icon(
+              Icons.check_circle_outline_rounded,
+              size: 40,
+              color: AppTheme.success,
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const Text(
             'All Questions Answered!',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Text(
             'You\'ve answered ${_responses.length} questions for ${_currentQuestionSet!['childName']}',
             style: const TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
+              fontSize: 14,
+              color: AppTheme.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -762,32 +868,34 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
           
           SizedBox(
             width: double.infinity,
+            height: 50,
             child: ElevatedButton(
               onPressed: _isSubmitting ? null : _submitResponses,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF003366),
+                backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.all(16),
+                elevation: 0,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
               child: _isSubmitting
                   ? const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 16,
-                          height: 16,
+                          width: 18,
+                          height: 18,
                           child: CircularProgressIndicator(
                             color: Colors.white,
                             strokeWidth: 2,
                           ),
                         ),
-                        SizedBox(width: 8),
+                        SizedBox(width: 10),
                         Text('Submitting...'),
                       ],
                     )
                   : const Text(
                       'Submit Responses',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
             ),
           ),
@@ -796,6 +904,7 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
           
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: OutlinedButton(
               onPressed: () {
                 setState(() {
@@ -804,11 +913,13 @@ class _ParentHierarchicalQuestionResponsePageState extends State<ParentHierarchi
                 });
               },
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
+                backgroundColor: AppTheme.surface,
+                side: const BorderSide(color: AppTheme.border, width: 1.2),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
               child: const Text(
                 'Cancel',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 15, color: AppTheme.textSecondary),
               ),
             ),
           ),

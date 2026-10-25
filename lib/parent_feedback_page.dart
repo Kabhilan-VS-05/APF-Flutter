@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 class ParentFeedbackPage extends StatefulWidget {
   const ParentFeedbackPage({super.key});
@@ -69,38 +70,26 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
     if (_selectedChild == null) return;
     
     try {
-      print('Loading feedback for child: ${_selectedChild!['name']} (${_selectedChild!['id']})');
-      
-      // Use dedicated feedback collection with proper Firestore rules
-      String currentUserId = _authService.currentUser!.uid;
-      
-      // Load feedback from feedback collection (no orderBy to avoid index requirement)
       QuerySnapshot feedbackSnapshot = await FirebaseFirestore.instance
           .collection('feedback')
           .where('childId', isEqualTo: _selectedChild!['id'])
           .limit(40)
           .get();
 
-      print('Total feedback docs: ${feedbackSnapshot.docs.length}');
-
       List<Map<String, dynamic>> received = [];
       List<Map<String, dynamic>> sent = [];
       
-      // Process all feedback and separate by type
       for (var doc in feedbackSnapshot.docs) {
         Map<String, dynamic> feedbackData = doc.data() as Map<String, dynamic>;
         feedbackData['id'] = doc.id;
         
         if (feedbackData['type'] == 'therapist_feedback') {
           received.add(feedbackData);
-          print('Received feedback: ${feedbackData['title']}');
         } else if (feedbackData['type'] == 'parent_feedback') {
           sent.add(feedbackData);
-          print('Sent feedback: ${feedbackData['title']}');
         }
       }
 
-      // Sort client-side by createdAt (newest first)
       received.sort((a, b) {
         Timestamp aTime = a['createdAt'] as Timestamp;
         Timestamp bTime = b['createdAt'] as Timestamp;
@@ -117,11 +106,7 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
         _receivedFeedback = received;
         _sentFeedback = sent;
       });
-      
-      print('Final received count: ${received.length}');
-      print('Final sent count: ${sent.length}');
     } catch (e) {
-      print('Error loading feedback: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading feedback: $e')),
       );
@@ -133,7 +118,7 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill in all fields'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppTheme.accentAmber,
         ),
       );
       return;
@@ -142,7 +127,6 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
     setState(() => _isSending = true);
 
     try {
-      // Use dedicated feedback collection with proper Firestore rules
       String currentUserId = _authService.currentUser!.uid;
       
       Map<String, dynamic> feedback = {
@@ -150,8 +134,8 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
         'childName': _selectedChild!['name'],
         'parentId': currentUserId,
         'parentName': _userData?['username'] ?? 'Parent',
-        'therapistId': '', // Not needed for parent feedback
-        'therapistName': '', // Not needed for parent feedback
+        'therapistId': '',
+        'therapistName': '',
         'title': _titleController.text.trim(),
         'message': _feedbackController.text.trim(),
         'type': 'parent_feedback',
@@ -162,25 +146,22 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
 
       await FirebaseFirestore.instance.collection('feedback').add(feedback);
 
-      // Clear form
       _titleController.clear();
       _feedbackController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Feedback sent to therapist successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.secondary,
         ),
       );
 
-      // Reload feedback list
       _loadFeedback();
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error sending feedback: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.accentRose,
         ),
       );
     } finally {
@@ -190,59 +171,126 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
 
   String _formatDate(Timestamp timestamp) {
     DateTime date = timestamp.toDate();
-    return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    return '${date.day}/${date.month}/${date.year} • ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Feedback'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.send),
-              text: 'Send Feedback',
-            ),
-            Tab(
-              icon: Icon(Icons.inbox),
-              text: 'Received Feedback',
-            ),
-          ],
+        title: const Text(
+          'Therapist Notes & Feedback',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(49),
+          child: Column(
+            children: [
+              TabBar(
+                controller: _tabController,
+                indicatorColor: AppTheme.primary,
+                indicatorWeight: 3,
+                labelColor: AppTheme.primary,
+                unselectedLabelColor: AppTheme.textMuted,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.mark_email_read_outlined, size: 18),
+                    text: 'Received Clinical Notes',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.outgoing_mail, size: 18),
+                    text: 'Send Parent Feedback',
+                  ),
+                ],
+              ),
+              const Divider(height: 1, color: AppTheme.border),
+            ],
+          ),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : Column(
               children: [
-                // Child Selection
+                // Child Selection Header
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.grey[100],
-                  child: DropdownButtonFormField<Map<String, dynamic>>(
-                    value: _selectedChild,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Child',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _children.map((child) {
-                      return DropdownMenuItem<Map<String, dynamic>>(
-                        value: child,
-                        child: Text(child['name']),
-                      );
-                    }).toList(),
-                    onChanged: (child) {
-                      setState(() {
-                        _selectedChild = child;
-                      });
-                      _loadFeedback();
-                    },
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                        ),
+                        child: const Icon(Icons.child_care_rounded, color: AppTheme.primary, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<Map<String, dynamic>>(
+                            value: _selectedChild,
+                            decoration: InputDecoration(
+                              labelText: 'Active Child Profile',
+                              labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              filled: true,
+                              fillColor: AppTheme.surfaceSubtle,
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.border),
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.border),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+                              ),
+                            ),
+                            items: _children.map((child) {
+                              return DropdownMenuItem<Map<String, dynamic>>(
+                                value: child,
+                                child: Text(
+                                  child['name'] ?? 'Unnamed Child',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (child) {
+                              setState(() {
+                                _selectedChild = child;
+                              });
+                              _loadFeedback();
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -251,8 +299,8 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildSendFeedbackTab(),
                       _buildReceivedFeedbackTab(),
+                      _buildSendFeedbackTab(),
                     ],
                   ),
                 ),
@@ -263,178 +311,264 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
 
   Widget _buildSendFeedbackTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: _buildSendFeedbackSection(),
     );
   }
 
   Widget _buildReceivedFeedbackTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: _buildFeedbackList(_receivedFeedback, 'Received Feedback'),
+      padding: const EdgeInsets.all(20),
+      child: _buildFeedbackList(_receivedFeedback, 'Clinical Notes from Therapist'),
     );
   }
 
   Widget _buildSendFeedbackSection() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Send Feedback to Therapist',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Subject',
-                border: OutlineInputBorder(),
-                hintText: 'e.g., Home Progress, Concerns, Questions',
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            TextField(
-              controller: _feedbackController,
-              decoration: const InputDecoration(
-                labelText: 'Feedback Message',
-                border: OutlineInputBorder(),
-                hintText: 'Share your observations, concerns, or questions...',
-              ),
-              maxLines: 4,
-            ),
-            const SizedBox(height: 16),
-            
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSending ? null : _sendFeedback,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF003366),
-                  foregroundColor: Colors.white,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryLight,
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                 ),
-                child: _isSending
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text('Send Feedback'),
+                child: const Icon(Icons.send_rounded, size: 18, color: AppTheme.primary),
               ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Compose Message for Therapist',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Share questions, observations or behavioral updates',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(
+              labelText: 'Subject / Concern',
+              labelStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+              border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(color: AppTheme.border),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+              ),
+              hintText: 'e.g., Sensory changes, Routine questions...',
+              hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+              filled: true,
+              fillColor: AppTheme.surfaceSubtle,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 14),
+          
+          TextField(
+            controller: _feedbackController,
+            decoration: InputDecoration(
+              labelText: 'Detailed Note / Message',
+              labelStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+              border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(color: AppTheme.border),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+              ),
+              hintText: 'Describe details regarding your child at home...',
+              hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+              filled: true,
+              fillColor: AppTheme.surfaceSubtle,
+            ),
+            maxLines: 5,
+          ),
+          const SizedBox(height: 20),
+          
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _isSending ? null : _sendFeedback,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                elevation: 0,
+              ),
+              child: _isSending
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.send_rounded, size: 16),
+                        SizedBox(width: 8),
+                        Text('Transmit to Therapist', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      ],
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildFeedbackList(List<Map<String, dynamic>> feedbackList, String title) {
-    print('Building feedback list: $title with ${feedbackList.length} items');
-    
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    if (feedbackList.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: AppTheme.border),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+              ),
+              child: const Icon(
+                Icons.mark_email_read_outlined,
+                size: 36,
+                color: AppTheme.primary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'No Clinical Notes Logged',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The assigned therapist has not recorded specific notes for ${_selectedChild?['name'] ?? 'your child'} yet.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 16),
-            
-            if (feedbackList.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.feedback_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        title == 'Received Feedback' ? 'No received feedback yet' : 'No sent feedback yet',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      Text(
-                        title == 'Received Feedback' 
-                            ? 'Therapist hasn\'t sent any feedback yet'
-                            : 'You haven\'t sent any feedback yet',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: feedbackList.length,
-                itemBuilder: (context, index) {
-                  Map<String, dynamic> feedback = feedbackList[index];
-                  print('Rendering feedback card: ${feedback['title']}');
-                  return _buildFeedbackCard(feedback);
-                },
+            Text(
+              '${feedbackList.length} notes',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textMuted,
               ),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: 14),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: feedbackList.length,
+          itemBuilder: (context, index) {
+            Map<String, dynamic> feedback = feedbackList[index];
+            return _buildFeedbackCard(feedback);
+          },
+        ),
+      ],
     );
   }
 
   void _showFeedbackDetails(Map<String, dynamic> feedback) {
     bool isFromTherapist = feedback['type'] == 'therapist_feedback';
-    Color cardColor = isFromTherapist ? Colors.green : Colors.blue;
+    Color accentColor = isFromTherapist ? AppTheme.secondary : AppTheme.primary;
     
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          backgroundColor: AppTheme.surface,
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppTheme.primary, width: 4)),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: cardColor.withOpacity(0.1),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.1),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                      ),
                       child: Icon(
-                        isFromTherapist ? Icons.reply : Icons.send,
-                        color: cardColor,
+                        isFromTherapist ? Icons.verified_user_outlined : Icons.outgoing_mail,
+                        color: accentColor,
                         size: 20,
                       ),
                     ),
@@ -446,17 +580,19 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
                           Text(
                             feedback['title'] ?? 'No Subject',
                             style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                           Text(
                             isFromTherapist 
-                                ? 'From: Therapist (${feedback['therapistName'] ?? 'Therapist'})'
+                                ? 'From: Therapist (${feedback['therapistName'] ?? 'Assigned Clinical Staff'})'
                                 : 'From: You (Parent)',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textMuted,
                             ),
                           ),
                         ],
@@ -464,31 +600,32 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                      color: Colors.grey[600],
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      color: AppTheme.textMuted,
                     ),
                   ],
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 
-                // Child info
+                // Child info banner
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.surfaceSubtle,
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.child_care, color: Colors.grey[600], size: 20),
+                      const Icon(Icons.child_care_rounded, color: AppTheme.primary, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        'Child: ${feedback['childName'] ?? 'Unknown'}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
+                        'Child Profile: ${feedback['childName'] ?? 'Unknown'}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                     ],
@@ -497,42 +634,44 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
                 
                 const SizedBox(height: 16),
                 
-                // Message
-                Text(
-                  'Message:',
+                const Text(
+                  'Message Body:',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[200]!),
+                    color: AppTheme.surfaceSubtle,
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Text(
-                    feedback['message'] ?? 'No message',
-                    style: const TextStyle(fontSize: 16),
+                    feedback['message'] ?? 'No message body provided.',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                      height: 1.5,
+                    ),
                   ),
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 
-                // Date and time
                 Row(
                   children: [
-                    Icon(Icons.access_time, color: Colors.grey[500], size: 16),
-                    const SizedBox(width: 4),
+                    const Icon(Icons.access_time_rounded, color: AppTheme.textMuted, size: 14),
+                    const SizedBox(width: 6),
                     Text(
                       _formatDate(feedback['createdAt']),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textMuted,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -540,20 +679,21 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
                 
                 const SizedBox(height: 20),
                 
-                // Close button
                 SizedBox(
                   width: double.infinity,
+                  height: 44,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: cardColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      backgroundColor: AppTheme.surfaceSubtle,
+                      foregroundColor: AppTheme.textPrimary,
+                      elevation: 0,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                        side: BorderSide(color: AppTheme.border),
                       ),
                     ),
-                    child: const Text('Close'),
+                    child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -566,72 +706,91 @@ class _ParentFeedbackPageState extends State<ParentFeedbackPage>
 
   Widget _buildFeedbackCard(Map<String, dynamic> feedback) {
     bool isFromTherapist = feedback['type'] == 'therapist_feedback';
-    Color cardColor = isFromTherapist ? Colors.green[50]! : Colors.blue[50]!;
-    Color iconColor = isFromTherapist ? Colors.green : Colors.blue;
-    IconData icon = isFromTherapist ? Icons.reply : Icons.send;
+    Color accentColor = isFromTherapist ? AppTheme.secondary : AppTheme.primary;
+    IconData icon = isFromTherapist ? Icons.reply_rounded : Icons.send_rounded;
     String sender = isFromTherapist 
-        ? 'From: Therapist (${feedback['therapistName'] ?? 'Therapist'})' 
-        : 'From: You (Parent)';
+        ? 'Therapist (${feedback['therapistName'] ?? 'Assigned Staff'})' 
+        : 'Parent (You)';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: iconColor.withOpacity(0.3)),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
       ),
-      child: ListTile(
-        onTap: () {
-          _showFeedbackDetails(feedback);
-        },
-        leading: CircleAvatar(
-          backgroundColor: iconColor,
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
-        title: Text(
-          feedback['title'] ?? 'No Subject',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              feedback['message'] ?? 'No message',
-              style: const TextStyle(fontSize: 14),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    sender,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
+      child: InkWell(
+        onTap: () => _showFeedbackDetails(feedback),
+        borderRadius: BorderRadius.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                ),
+                child: Icon(icon, color: accentColor, size: 18),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feedback['title'] ?? 'No Subject',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      feedback['message'] ?? 'No message',
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.3),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'By $sender',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: accentColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(feedback['createdAt']),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  _formatDate(feedback['createdAt']),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        isThreeLine: true,
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey[400],
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: AppTheme.textMuted,
+              ),
+            ],
+          ),
         ),
       ),
     );

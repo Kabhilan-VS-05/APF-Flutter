@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 class TherapistAssessmentPage extends StatefulWidget {
   final Map<String, dynamic> child;
@@ -136,48 +137,95 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Child Assessment'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Clinical Domain Assessment',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
       ),
       body: Column(
         children: [
           // Child Selection Header
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[100],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              border: Border(bottom: BorderSide(color: AppTheme.border)),
+            ),
+            child: Row(
               children: [
-                const Text(
-                  'Assessment for:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF003366),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryLight,
+                    border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
                   ),
+                  child: const Icon(Icons.person_pin_rounded, color: AppTheme.secondary, size: 18),
                 ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<Map<String, dynamic>>(
-                  value: selectedChild,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButtonFormField<Map<String, dynamic>>(
+                      value: selectedChild,
+                      decoration: InputDecoration(
+                        labelText: 'Active Patient Profile',
+                        labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        filled: true,
+                        fillColor: AppTheme.surfaceSubtle,
+                        border: const OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(color: AppTheme.border),
+                        ),
+                        enabledBorder: const OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(color: AppTheme.border),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
+                        ),
+                      ),
+                      items: widget.children.map((child) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: child,
+                          child: Text(
+                            '${child['name']} (Age: ${child['age']})',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (child) {
+                        setState(() {
+                          selectedChild = child!;
+                          answers.clear();
+                          _resetControllers();
+                        });
+                      },
+                    ),
                   ),
-                  items: widget.children.map((child) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: child,
-                      child: Text('${child['name']} (Age: ${child['age']})'),
-                    );
-                  }).toList(),
-                  onChanged: (child) {
-                    setState(() {
-                      selectedChild = child!;
-                      answers.clear(); // Reset answers when child changes
-                      _resetControllers(); // Reset text controllers
-                    });
-                  },
                 ),
               ],
             ),
@@ -186,23 +234,36 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
           // Questions Form
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.secondary))
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Assessment Questions',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF003366),
-                          ),
+                        Row(
+                          children: [
+                            const Text(
+                              'Standardized Evaluation Criteria',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${_questions.length} domains',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         
-                        ..._questions.map((question) => _buildQuestion(question)).toList(),
+                        ..._questions.map((question) => _buildQuestion(question)),
                         
                         const SizedBox(height: 20),
                         
@@ -210,12 +271,15 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
                         Row(
                           children: [
                             Expanded(
+                              flex: 2,
                               child: ElevatedButton(
                                 onPressed: _isGenerating ? null : _generateReport,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF003366),
+                                  backgroundColor: AppTheme.secondary,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  elevation: 0,
+                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                                 ),
                                 child: _isGenerating
                                     ? const Row(
@@ -230,10 +294,17 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
                                             ),
                                           ),
                                           SizedBox(width: 8),
-                                          Text('Generating...'),
+                                          Text('Publishing Findings...', style: TextStyle(fontWeight: FontWeight.w700)),
                                         ],
                                       )
-                                    : const Text('Generate Report'),
+                                    : const Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.assignment_turned_in_outlined, size: 18),
+                                          SizedBox(width: 8),
+                                          Text('Publish Assessment', style: TextStyle(fontWeight: FontWeight.w700)),
+                                        ],
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -241,17 +312,21 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
                               child: OutlinedButton(
                                 onPressed: () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  foregroundColor: AppTheme.textPrimary,
+                                  side: const BorderSide(color: AppTheme.border),
+                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                                 ),
-                                child: const Text('Cancel'),
+                                child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                  ),
+          ),
         ],
       ),
     );
@@ -265,42 +340,48 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      questionText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    questionText,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
-                  if (isRequired)
-                    const Text(
-                      '*',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                ),
+                if (isRequired)
+                  const Text(
+                    ' *',
+                    style: TextStyle(
+                      color: AppTheme.accentRose,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              if (questionType == 'choice')
-                _buildChoiceQuestion(question)
-              else if (questionType == 'text')
-                _buildTextQuestion(question),
-            ],
-          ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            
+            if (questionType == 'choice')
+              _buildChoiceQuestion(question)
+            else if (questionType == 'text')
+              _buildTextQuestion(question),
+          ],
         ),
       ),
     );
@@ -313,17 +394,58 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
 
     return Column(
       children: options.map((option) {
-        return RadioListTile<String>(
-          title: Text(option),
-          value: option,
-          groupValue: selectedOption,
-          onChanged: (value) {
-            setState(() {
-              answers[questionId] = value!;
-            });
-          },
-          contentPadding: const EdgeInsets.all(0),
-          dense: true,
+        final isSelected = selectedOption == option;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.secondaryLight.withValues(alpha: 0.35) : AppTheme.surfaceSubtle,
+            border: Border.all(
+              color: isSelected ? AppTheme.secondary : AppTheme.border,
+              width: isSelected ? 1.5 : 1,
+            ),
+            borderRadius: BorderRadius.zero,
+          ),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                answers[questionId] = option;
+              });
+            },
+            borderRadius: BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.secondary : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected ? AppTheme.secondary : AppTheme.border,
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.zero,
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       }).toList(),
     );
@@ -333,7 +455,6 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
     final questionId = question['id'] as String;
     final placeholder = question['placeholder'] as String? ?? '';
     
-    // Ensure controller exists
     if (!_controllers.containsKey(questionId)) {
       _controllers[questionId] = TextEditingController();
     }
@@ -343,26 +464,29 @@ class _TherapistAssessmentPageState extends State<TherapistAssessmentPage> {
       controller: controller,
       maxLines: 3,
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 14,
+        color: AppTheme.textPrimary,
+        fontSize: 13,
       ),
       decoration: InputDecoration(
         hintText: placeholder,
         hintStyle: const TextStyle(
-          color: Colors.grey,
-          fontSize: 14,
+          color: AppTheme.textMuted,
+          fontSize: 13,
         ),
         border: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppTheme.border),
         ),
         enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppTheme.border),
         ),
         focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF003366), width: 2),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.surfaceSubtle,
         contentPadding: const EdgeInsets.all(12),
       ),
       onChanged: (value) {

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math' as math;
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 class TherapistProgressPage extends StatefulWidget {
   const TherapistProgressPage({super.key});
@@ -298,40 +299,96 @@ class _TherapistProgressPageState extends State<TherapistProgressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Child Progress'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Patient Progress & Milestones',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.secondary))
           : Column(
               children: [
-                // Filters Section
+                // Patient Selector Header
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.grey[100],
-                  child: Column(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Row(
                     children: [
-                      // Child Selection Only
-                      DropdownButtonFormField<String>(
-                        value: _selectedChildId,
-                        decoration: const InputDecoration(
-                          labelText: 'Select Child',
-                          border: OutlineInputBorder(),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryLight,
+                          border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
                         ),
-                        items: _children.map((child) {
-                          return DropdownMenuItem<String>(
-                            value: child['id'],
-                            child: Text(child['name']),
-                          );
-                        }).toList(),
-                        onChanged: (childId) {
-                          setState(() {
-                            _selectedChildId = childId;
-                          });
-                          _loadProgressData();
-                        },
+                        child: const Icon(Icons.person_pin_rounded, color: AppTheme.secondary, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedChildId,
+                            decoration: InputDecoration(
+                              labelText: 'Active Patient Roster',
+                              labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              filled: true,
+                              fillColor: AppTheme.surfaceSubtle,
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.border),
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.border),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
+                              ),
+                            ),
+                            items: _children.map((child) {
+                              return DropdownMenuItem<String>(
+                                value: child['id'],
+                                child: Text(
+                                  child['name'] ?? 'Unnamed',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (childId) {
+                              setState(() {
+                                _selectedChildId = childId;
+                              });
+                              _loadProgressData();
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -340,13 +397,13 @@ class _TherapistProgressPageState extends State<TherapistProgressPage> {
                 // Progress Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
                         // Progress Chart Card
                         _buildProgressCard(),
                         
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         
                         // Questions Section
                         _buildQuestionsSection(),
@@ -362,180 +419,225 @@ class _TherapistProgressPageState extends State<TherapistProgressPage> {
   Widget _buildProgressCard() {
     Map<String, dynamic> progress = _calculateProgress();
     
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text(
-              'Development Progress',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Development Progress Index',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
             ),
-            const SizedBox(height: 20),
-            
-            // Donut Chart
-            Container(
-              height: 200,
-              width: 200,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(
-                    painter: DonutChartPainter(
-                      progress: progress['score'].toDouble(),
-                      progressColor: progress['color'],
-                      backgroundColor: Colors.grey[300]!,
-                    ),
-                    child: Container(),
+          ),
+          const SizedBox(height: 22),
+          
+          // Donut Chart
+          SizedBox(
+            height: 180,
+            width: 180,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  painter: DonutChartPainter(
+                    progress: progress['score'].toDouble(),
+                    progressColor: progress['color'],
+                    backgroundColor: AppTheme.surfaceSubtle,
                   ),
-                  Center(
-                    child: Text(
+                  child: Container(),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
                       "${progress['score']}%",
                       style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
                         color: progress['color'],
+                        letterSpacing: -1,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Category and Message
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: progress['color'].withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: progress['color'].withOpacity(0.3)),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    progress['category'],
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: progress['color'],
+                    const Text(
+                      "Milestone Metric",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textMuted,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    progress['message'],
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          
+          const SizedBox(height: 22),
+          
+          // Category and Message
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: (progress['color'] as Color).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.zero,
+              border: Border.all(color: (progress['color'] as Color).withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  progress['category'],
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: progress['color'],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  progress['message'],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildQuestionsSection() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Assessment Questions',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                    ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Milestone Evaluation Form',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showQuestions = !_showQuestions;
-                      if (!_showQuestions) {
-                        _currentAnswers.clear(); // Clear answers when hiding
-                      }
-                    });
-                  },
-                  icon: Icon(_showQuestions ? Icons.expand_less : Icons.expand_more),
-                  label: Text(_showQuestions ? 'Hide' : 'Show'),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _showQuestions = !_showQuestions;
+                    if (!_showQuestions) {
+                      _currentAnswers.clear();
+                    }
+                  });
+                },
+                icon: Icon(
+                  _showQuestions ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  color: AppTheme.secondary,
+                ),
+                label: Text(
+                  _showQuestions ? 'Hide Assessment' : 'Evaluate Child',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.secondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          if (_showQuestions) ...[
+            const SizedBox(height: 16),
+            
+            // Progress indicator
+            LinearProgressIndicator(
+              value: _currentAnswers.length / _assessmentQuestions.length,
+              backgroundColor: AppTheme.surfaceSubtle,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
+              minHeight: 6,
+            ),
+            const SizedBox(height: 10),
+            
+            Text(
+              'Criteria Evaluated: ${_currentAnswers.length}/${_assessmentQuestions.length}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textMuted,
+              ),
+            ),
+            
+            const SizedBox(height: 18),
+            
+            // Questions list
+            ..._assessmentQuestions.asMap().entries.map((entry) {
+              int index = entry.key;
+              Map<String, dynamic> question = entry.value;
+              return _buildQuestionItem(index + 1, question);
+            }),
+            
+            const SizedBox(height: 20),
+            
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _currentAnswers.length == _assessmentQuestions.length
+                        ? _saveAssessment
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.secondary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    ),
+                    child: const Text('Save Progress Record', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _clearAnswers,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      foregroundColor: AppTheme.textPrimary,
+                      side: const BorderSide(color: AppTheme.border),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    ),
+                    child: const Text('Reset', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
                 ),
               ],
             ),
-            
-            if (_showQuestions) ...[
-              const SizedBox(height: 16),
-              
-              // Progress indicator
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: LinearProgressIndicator(
-                  value: _currentAnswers.length / _assessmentQuestions.length,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                ),
-              ),
-              
-              Text(
-                'Answered: ${_currentAnswers.length}/${_assessmentQuestions.length}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Questions list
-              ..._assessmentQuestions.asMap().entries.map((entry) {
-                int index = entry.key;
-                Map<String, dynamic> question = entry.value;
-                return _buildQuestionItem(index + 1, question);
-              }).toList(),
-              
-              const SizedBox(height: 20),
-              
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _currentAnswers.length == _assessmentQuestions.length
-                          ? _saveAssessment
-                          : null,
-                      child: const Text('Save Assessment'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _clearAnswers,
-                      child: const Text('Clear Answers'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -548,22 +650,25 @@ class _TherapistProgressPageState extends State<TherapistProgressPage> {
     String? selectedAnswer = _currentAnswers[questionId];
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-        color: selectedAnswer != null ? Colors.blue[50] : Colors.white,
+        border: Border.all(
+          color: selectedAnswer != null ? AppTheme.secondary : AppTheme.border,
+          width: selectedAnswer != null ? 1.5 : 1,
+        ),
+        borderRadius: BorderRadius.zero,
+        color: selectedAnswer != null ? AppTheme.secondaryLight.withValues(alpha: 0.15) : AppTheme.surfaceSubtle,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$questionNumber. $questionText',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -574,45 +679,49 @@ class _TherapistProgressPageState extends State<TherapistProgressPage> {
               Expanded(
                 child: InkWell(
                   onTap: () => _selectAnswer(questionId, positiveAnswer),
+                  borderRadius: BorderRadius.zero,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: selectedAnswer == positiveAnswer ? Colors.green : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(6),
+                      color: selectedAnswer == positiveAnswer ? AppTheme.secondary : AppTheme.surface,
+                      borderRadius: BorderRadius.zero,
                       border: Border.all(
-                        color: selectedAnswer == positiveAnswer ? Colors.green : Colors.grey[300]!,
+                        color: selectedAnswer == positiveAnswer ? AppTheme.secondary : AppTheme.border,
                       ),
                     ),
                     child: Text(
                       positiveAnswer,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: selectedAnswer == positiveAnswer ? Colors.white : Colors.grey[700],
-                        fontWeight: FontWeight.w500,
+                        color: selectedAnswer == positiveAnswer ? Colors.white : AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: InkWell(
                   onTap: () => _selectAnswer(questionId, negativeAnswer),
+                  borderRadius: BorderRadius.zero,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: selectedAnswer == negativeAnswer ? Colors.red : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(6),
+                      color: selectedAnswer == negativeAnswer ? AppTheme.accentRose : AppTheme.surface,
+                      borderRadius: BorderRadius.zero,
                       border: Border.all(
-                        color: selectedAnswer == negativeAnswer ? Colors.red : Colors.grey[300]!,
+                        color: selectedAnswer == negativeAnswer ? AppTheme.accentRose : AppTheme.border,
                       ),
                     ),
                     child: Text(
                       negativeAnswer,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: selectedAnswer == negativeAnswer ? Colors.white : Colors.grey[700],
-                        fontWeight: FontWeight.w500,
+                        color: selectedAnswer == negativeAnswer ? Colors.white : AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
                     ),
                   ),

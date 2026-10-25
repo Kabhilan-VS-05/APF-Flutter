@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 class QuestionItem {
   String id;
@@ -133,46 +134,93 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Send Questions to Parent'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Clinical Questionnaire Builder',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
       ),
       body: Column(
         children: [
           // Child Selection Header
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[100],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              border: Border(bottom: BorderSide(color: AppTheme.border)),
+            ),
+            child: Row(
               children: [
-                const Text(
-                  'Send questions for:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF003366),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryLight,
+                    border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
                   ),
+                  child: const Icon(Icons.person_pin_rounded, color: AppTheme.secondary, size: 18),
                 ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<Map<String, dynamic>>(
-                  value: selectedChild,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButtonFormField<Map<String, dynamic>>(
+                      value: selectedChild,
+                      decoration: InputDecoration(
+                        labelText: 'Assigned Patient',
+                        labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        filled: true,
+                        fillColor: AppTheme.surfaceSubtle,
+                        border: const OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(color: AppTheme.border),
+                        ),
+                        enabledBorder: const OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(color: AppTheme.border),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
+                        ),
+                      ),
+                      items: widget.children.map((child) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: child,
+                          child: Text(
+                            '${child['name']} (Age: ${child['age']})',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (child) {
+                        setState(() {
+                          selectedChild = child!;
+                        });
+                      },
+                    ),
                   ),
-                  items: widget.children.map((child) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: child,
-                      child: Text('${child['name']} (Age: ${child['age']})'),
-                    );
-                  }).toList(),
-                  onChanged: (child) {
-                    setState(() {
-                      selectedChild = child!;
-                    });
-                  },
                 ),
               ],
             ),
@@ -181,24 +229,30 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
           // Questions Form
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Hierarchical Questions for Parent',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF003366),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryLight.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.zero,
+                      border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Create main questions with optional subquestions. Parents will answer main questions first, and only see subquestions if they answer "Yes".',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 18, color: AppTheme.secondary),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Parents answer primary questions first. Conditional follow-up subquestions expand automatically when parents indicate "Yes".',
+                            style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, height: 1.4),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -208,17 +262,20 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
                     final index = entry.key;
                     final question = entry.value;
                     return _buildMainQuestionCard(index, question);
-                  }).toList(),
+                  }),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   
                   // Add Main Question Button
                   OutlinedButton.icon(
                     onPressed: _addMainQuestion,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Main Question'),
+                    icon: const Icon(Icons.add, size: 18, color: AppTheme.secondary),
+                    label: const Text('Add Primary Question', style: TextStyle(fontWeight: FontWeight.w700)),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: AppTheme.secondary,
+                      side: const BorderSide(color: AppTheme.secondary, width: 1.5),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                     ),
                   ),
                   
@@ -228,12 +285,15 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
                   Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: ElevatedButton(
                           onPressed: _isSending ? null : _sendQuestions,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF003366),
+                            backgroundColor: AppTheme.secondary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            elevation: 0,
+                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                           ),
                           child: _isSending
                               ? const Row(
@@ -248,10 +308,17 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
                                       ),
                                     ),
                                     SizedBox(width: 8),
-                                    Text('Sending...'),
+                                    Text('Transmitting Questionnaire...', style: TextStyle(fontWeight: FontWeight.w700)),
                                   ],
                                 )
-                              : const Text('Send Questions'),
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.send_rounded, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Send to Parent Portal', style: TextStyle(fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -259,13 +326,17 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            foregroundColor: AppTheme.textPrimary,
+                            side: const BorderSide(color: AppTheme.border),
+                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                           ),
-                          child: const Text('Cancel'),
+                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -278,122 +349,136 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
   Widget _buildMainQuestionCard(int index, QuestionItem question) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      child: Card(
-        elevation: 3,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Main Question Header
-              Row(
-                children: [
-                  Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Main Question Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryLight,
+                    border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: Text(
+                    'PRIMARY QUESTION ${index + 1}',
+                    style: const TextStyle(
+                      color: AppTheme.secondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (_mainQuestions.length > 1)
+                  IconButton(
+                    onPressed: () => _removeMainQuestion(index),
+                    icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.accentRose, size: 20),
+                    tooltip: 'Remove primary question',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Main Question Input
+            TextField(
+              controller: question.controller,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Enter observation question for parent...',
+                hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+                enabledBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: AppTheme.border),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
+                ),
+                filled: true,
+                fillColor: AppTheme.surfaceSubtle,
+                contentPadding: const EdgeInsets.all(12),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Subquestions Section Header
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Branching subquestions (triggered on "Yes"):',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _addSubQuestion(index),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: const Text('Add Branch', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.secondary,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF003366),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'MAIN QUESTION',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  if (_mainQuestions.length > 1)
-                    IconButton(
-                      onPressed: () => _removeMainQuestion(index),
-                      icon: const Icon(Icons.remove_circle, color: Colors.red),
-                      tooltip: 'Remove main question',
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              // Main Question Input
-              TextField(
-                controller: question.controller,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Enter main question here...',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Subquestions Section
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Subquestions (shown if parent answers "Yes"):',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _addSubQuestion(index),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size(0, 32),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Subquestions List
-              if (question.subQuestions.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    children: question.subQuestions.asMap().entries.map((entry) {
-                      final subIndex = entry.key;
-                      final subQuestion = entry.value;
-                      return _buildSubQuestionCard(index, subIndex, subQuestion);
-                    }).toList(),
-                  ),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'No subquestions added yet',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    minimumSize: const Size(0, 30),
                   ),
                 ),
-            ],
-          ),
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // Subquestions List
+            if (question.subQuestions.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceSubtle,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Column(
+                  children: question.subQuestions.asMap().entries.map((entry) {
+                    final subIndex = entry.key;
+                    final subQuestion = entry.value;
+                    return _buildSubQuestionCard(index, subIndex, subQuestion);
+                  }).toList(),
+                ),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceSubtle,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: const Center(
+                  child: Text(
+                    'No conditional follow-up questions linked.',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -405,31 +490,37 @@ class _TherapistHierarchicalQuestionPageState extends State<TherapistHierarchica
       child: Row(
         children: [
           Container(
-            width: 4,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.blue[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
+            width: 3,
+            height: 38,
+            color: AppTheme.secondary,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: subQuestion.controller,
               decoration: const InputDecoration(
-                hintText: 'Enter subquestion...',
-                border: OutlineInputBorder(),
+                hintText: 'Enter follow-up question...',
+                hintStyle: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: AppTheme.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: AppTheme.secondary, width: 1.5),
+                ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppTheme.surface,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           IconButton(
             onPressed: () => _removeSubQuestion(parentIndex, subIndex),
-            icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
+            icon: const Icon(Icons.remove_circle_outline, color: AppTheme.accentRose, size: 18),
             tooltip: 'Remove subquestion',
           ),
         ],

@@ -24,25 +24,88 @@ class AuthService {
     required String username,
     required String phone,
     required String panCard,
+    required String address,
     required String role,
     String? work,
   }) async {
     try {
-      // TODO: Re-enable duplicate checking after Firestore rules are deployed
-      // For now, skip duplicate checking to avoid permission errors
-      
-      // Create user with email and password
+      // Only check duplicate name + hospital address for Therapist accounts
+      if (role == 'Therapist' && address.trim().isNotEmpty) {
+        String normalize(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+        final targetName = normalize(username);
+        final targetAddress = normalize(address);
+
+        // Pre-check for duplicate Name and Address if unauthenticated query is permitted
+        try {
+          final usersSnapshot = await _firestore.collection('users').where('role', isEqualTo: 'Therapist').get();
+          for (var doc in usersSnapshot.docs) {
+            final data = doc.data();
+            final existingName = normalize((data['username'] ?? '').toString());
+            final existingAddress = normalize((data['address'] ?? '').toString());
+
+            if (existingName.isNotEmpty &&
+                existingAddress.isNotEmpty &&
+                existingName == targetName &&
+                existingAddress == targetAddress) {
+              throw 'A therapist account already exists with the same Name and Hospital Address ($username, $address).';
+            }
+          }
+        } catch (e) {
+          if (e.toString().contains('already exists with the same Name and Hospital Address')) {
+            rethrow;
+          }
+          // If unauthenticated list read is denied by Firestore rules, proceed to post-auth verification
+        }
+      }
+
+      // Create user with email and password in Firebase Auth
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
+      // Post-auth duplicate check for Therapists with authenticated credentials
+      if (role == 'Therapist' && address.trim().isNotEmpty) {
+        try {
+          String normalize(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+          final targetName = normalize(username);
+          final targetAddress = normalize(address);
+
+          final usersSnapshot = await _firestore.collection('users').where('role', isEqualTo: 'Therapist').get();
+          for (var doc in usersSnapshot.docs) {
+            if (doc.id == userCredential.user!.uid) continue;
+            final data = doc.data();
+            final existingName = normalize((data['username'] ?? '').toString());
+            final existingAddress = normalize((data['address'] ?? '').toString());
+
+            if (existingName.isNotEmpty &&
+                existingAddress.isNotEmpty &&
+                existingName == targetName &&
+                existingAddress == targetAddress) {
+              // Clean up newly created auth user before throwing
+              try {
+                await userCredential.user!.delete();
+              } catch (_) {}
+              try {
+                await _auth.signOut();
+              } catch (_) {}
+              throw 'A therapist account already exists with the same Name and Hospital Address ($username, $address).';
+            }
+          }
+        } catch (e) {
+          if (e.toString().contains('already exists with the same Name and Hospital Address')) {
+            rethrow;
+          }
+        }
+      }
+
       // Store additional user data in Firestore
       Map<String, dynamic> userData = {
-        'username': username,
-        'email': email,
-        'phone': phone,
-        'panCard': panCard.toUpperCase(),
+        'username': username.trim(),
+        'email': email.trim(),
+        'phone': phone.trim(),
+        'panCard': panCard.toUpperCase().trim(),
+        'address': address.trim(),
         'role': role,
         'createdAt': FieldValue.serverTimestamp(),
         'isActive': true,
@@ -50,7 +113,7 @@ class AuthService {
 
       // Add work field for parents
       if (role == 'Parent') {
-        userData['work'] = work ?? '';
+        userData['work'] = work?.trim() ?? '';
       }
 
       await _firestore.collection('users').doc(userCredential.user!.uid).set(userData);
@@ -114,6 +177,15 @@ class AuthService {
       return null;
     } catch (e) {
       throw 'Failed to get user data.';
+    }
+  }
+
+  // Update user data in Firestore
+  Future<void> updateUserData(String userId, Map<String, dynamic> data) async {
+    try {
+      await _firestore.collection('users').doc(userId).set(data, SetOptions(merge: true));
+    } catch (e) {
+      throw 'Failed to update profile: $e';
     }
   }
 

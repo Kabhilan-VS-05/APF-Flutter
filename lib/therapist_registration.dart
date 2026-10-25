@@ -2,7 +2,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'therapist_home_page.dart';
+import 'therapist_dashboard.dart';
 
 class TherapistRegistrationPage extends StatefulWidget {
   const TherapistRegistrationPage({super.key});
@@ -125,7 +125,7 @@ class _TherapistRegistrationPageState extends State<TherapistRegistrationPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => const TherapistHomePage()),
+                builder: (context) => const TherapistDashboard()),
           );
         },
         child: Text(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui; // ← needed for ImageFilter
-import 'parents_home_page.dart'; // Navigate after registration
+import 'parent_dashboard.dart'; // Navigate after registration
 
 class ParentRegistrationPage extends StatefulWidget {
   const ParentRegistrationPage({super.key});
@@ -150,7 +150,7 @@ class _ParentRegistrationPageState extends State<ParentRegistrationPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const FeedbackQuestionPage(),
+              builder: (context) => const ParentDashboard(),
             ),
           );
         }

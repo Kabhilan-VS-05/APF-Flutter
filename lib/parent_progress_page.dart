@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math' as math;
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 class ParentProgressPage extends StatefulWidget {
   const ParentProgressPage({super.key});
@@ -84,17 +85,17 @@ class _ParentProgressPageState extends State<ParentProgressPage> {
   Color _getColorForCategory(String category) {
     switch (category) {
       case 'Excellent Progress':
-        return Colors.green;
+        return AppTheme.secondary;
       case 'Good Progress':
-        return Colors.lightGreen;
+        return AppTheme.primary;
       case 'Making Progress':
-        return Colors.orange;
+        return AppTheme.accentAmber;
       case 'Needs Support':
         return Colors.deepOrange;
       case 'Requires Focus':
-        return Colors.red;
+        return AppTheme.accentRose;
       default:
-        return Colors.grey;
+        return AppTheme.textMuted;
     }
   }
 
@@ -107,44 +108,105 @@ class _ParentProgressPageState extends State<ParentProgressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Child Progress'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Child Progress',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : Column(
               children: [
-                // Child Selection
+                // Child Selection Header
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.grey[100],
-                  child: DropdownButtonFormField<Map<String, dynamic>>(
-                    value: _selectedChild,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Child',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _children.map((child) {
-                      return DropdownMenuItem<Map<String, dynamic>>(
-                        value: child,
-                        child: Text(child['name']),
-                      );
-                    }).toList(),
-                    onChanged: (child) {
-                      setState(() {
-                        _selectedChild = child;
-                      });
-                      _loadProgressData();
-                    },
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                        ),
+                        child: const Icon(Icons.child_care_rounded, color: AppTheme.primary, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<Map<String, dynamic>>(
+                            value: _selectedChild,
+                            decoration: InputDecoration(
+                              labelText: 'Active Child Profile',
+                              labelStyle: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              filled: true,
+                              fillColor: AppTheme.surfaceSubtle,
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.border),
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.border),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderRadius: BorderRadius.zero,
+                                borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+                              ),
+                            ),
+                            items: _children.map((child) {
+                              return DropdownMenuItem<Map<String, dynamic>>(
+                                value: child,
+                                child: Text(
+                                  child['name'] ?? 'Unnamed Child',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (child) {
+                              setState(() {
+                                _selectedChild = child;
+                              });
+                              _loadProgressData();
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
                 // Progress Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: _buildProgressContent(),
                   ),
                 ),
@@ -155,37 +217,48 @@ class _ParentProgressPageState extends State<ParentProgressPage> {
 
   Widget _buildProgressContent() {
     if (_progressData == null) {
-      return Card(
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 64,
-                color: Colors.grey[400],
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'No Progress Data Available',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[600],
-                ),
+              child: const Icon(
+                Icons.analytics_outlined,
+                size: 36,
+                color: AppTheme.primary,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'The therapist hasn\'t assessed ${_selectedChild?['name'] ?? 'your child\'s'} progress yet. Please check back later.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'No Progress Data Logged',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The therapist has not published milestone records for ${_selectedChild?['name'] ?? 'your child'} yet. Please check back after next clinical session.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -198,149 +271,180 @@ class _ParentProgressPageState extends State<ParentProgressPage> {
     return Column(
       children: [
         // Progress Chart Card
-        Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Text(
-                  '${_selectedChild!['name']}\'s Development Progress',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: AppTheme.border),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Column(
+            children: [
+              Text(
+                '${_selectedChild!['name']}\'s Development Progress',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textPrimary,
                 ),
-                const SizedBox(height: 20),
-                
-                // Donut Chart
-                Container(
-                  height: 200,
-                  width: 200,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
-                        painter: DonutChartPainter(
-                          progress: score.toDouble(),
-                          progressColor: color,
-                          backgroundColor: Colors.grey[300]!,
-                        ),
-                        child: Container(),
+              ),
+              const SizedBox(height: 24),
+              
+              // Donut Chart
+              SizedBox(
+                height: 180,
+                width: 180,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      painter: DonutChartPainter(
+                        progress: score.toDouble(),
+                        progressColor: color,
+                        backgroundColor: AppTheme.surfaceSubtle,
                       ),
-                      Center(
-                        child: Text(
+                      child: Container(),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
                           "$score%",
                           style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
                             color: color,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Category and Message
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        category,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: color,
+                        const Text(
+                          "Overall Index",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textMuted,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Last updated: ${_formatDate(progress['updatedAt'])}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Category and Message
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Last updated: ${_formatDate(progress['updatedAt'])}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         
         // Detailed Assessment Card
-        Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Assessment Details',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: AppTheme.border),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Clinical Metrics Breakdown',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textPrimary,
                 ),
-                const SizedBox(height: 16),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+              ),
+              const SizedBox(height: 18),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildDetailItem('Total Questions', '${progress['totalQuestions'] ?? 10}', AppTheme.primary),
+                  _buildDetailItem('Positive Responses', '${progress['positiveResponses'] ?? 0}', AppTheme.secondary),
+                  _buildDetailItem('Progress Score', '$score%', color),
+                ],
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Therapist Information
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceSubtle,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailItem('Total Questions', '${progress['totalQuestions'] ?? 10}', Colors.blue),
-                    _buildDetailItem('Positive Responses', '${progress['positiveResponses'] ?? 0}', Colors.green),
-                    _buildDetailItem('Progress Score', '$score%', color),
+                    Row(
+                      children: [
+                        const Icon(Icons.verified_user_outlined, size: 16, color: AppTheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Assessed by: ${progress['therapistName'] ?? 'Assigned Therapist'}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Clinical Note: ${progress['notes'] ?? 'Developmental assessment completed.'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
                   ],
                 ),
-                
-                const SizedBox(height: 16),
-                
-                // Therapist Information
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Assessed by: ${progress['therapistName'] ?? 'Therapist'}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Notes: ${progress['notes'] ?? 'Developmental assessment completed'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -351,19 +455,19 @@ class _ParentProgressPageState extends State<ParentProgressPage> {
     return Column(
       children: [
         Container(
-          width: 60,
-          height: 60,
+          width: 58,
+          height: 58,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: color.withOpacity(0.3)),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Center(
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
                 color: color,
               ),
             ),
@@ -372,9 +476,10 @@ class _ParentProgressPageState extends State<ParentProgressPage> {
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),

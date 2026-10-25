@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
 import 'services/auth_service.dart';
 import 'services/pdf_service.dart';
+import 'theme/app_theme.dart';
 
 class TherapistReportsPage extends StatefulWidget {
   const TherapistReportsPage({super.key});
@@ -19,7 +20,6 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
   List<Map<String, dynamic>> _filteredReports = [];
   bool _isLoading = true;
   String? _selectedChildId;
-  String _selectedReportType = 'all'; // 'all', 'therapist', 'parent'
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -45,9 +45,15 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: AppTheme.error,
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          ),
+        );
+      }
     }
   }
 
@@ -60,7 +66,7 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('reports')
           .where('childId', isEqualTo: _selectedChildId)
-          .where('status', isEqualTo: 'therapist_assessment') // Only therapist assessments
+          .where('status', isEqualTo: 'therapist_assessment')
           .get();
 
       List<Map<String, dynamic>> reports = [];
@@ -70,30 +76,36 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
         reports.add(report);
       }
 
-      // Sort client-side
       reports.sort((a, b) {
         Timestamp aTime = a['createdAt'] as Timestamp;
         Timestamp bTime = b['createdAt'] as Timestamp;
-        return bTime.compareTo(aTime); // Descending order
+        return bTime.compareTo(aTime);
       });
 
-      setState(() {
-        _reports = reports;
-        _applyFilters();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _reports = reports;
+          _applyFilters();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading reports: $e')),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading reports: $e'),
+            backgroundColor: AppTheme.error,
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          ),
+        );
+      }
     }
   }
 
   void _applyFilters() {
     List<Map<String, dynamic>> filtered = List.from(_reports);
     
-    // Apply date filters
     if (_startDate != null || _endDate != null) {
       filtered = filtered.where((report) {
         Timestamp? timestamp = report['createdAt'] as Timestamp?;
@@ -118,6 +130,19 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
       initialDate: _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.secondary,
+              onPrimary: Colors.white,
+              surface: AppTheme.surface,
+              onSurface: AppTheme.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _startDate) {
       setState(() {
@@ -133,6 +158,19 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
       initialDate: _endDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.secondary,
+              onPrimary: Colors.white,
+              surface: AppTheme.surface,
+              onSurface: AppTheme.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _endDate) {
       setState(() {
@@ -150,70 +188,190 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
     _applyFilters();
   }
 
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown date';
+    try {
+      DateTime date;
+      if (timestamp is Timestamp) {
+        date = timestamp.toDate();
+      } else if (timestamp is String) {
+        date = DateTime.parse(timestamp);
+      } else {
+        return 'Unknown date';
+      }
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return 'Invalid date';
+    }
+  }
+
+  Future<void> _generatePDF(Map<String, dynamic> report) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Generating clinical PDF report...'),
+          duration: Duration(seconds: 1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        ),
+      );
+      
+      await PDFService.generateAndShareReport(report);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF generated successfully!'),
+            backgroundColor: AppTheme.secondary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating PDF: $e'),
+            backgroundColor: AppTheme.error,
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('View Reports'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Clinical Reports Archive',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            Text(
+              'Assessment Records & PDF Export',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.secondary))
           : Column(
               children: [
-                // Filters Section
+                // Filter Control Section
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.grey[100],
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
                   child: Column(
                     children: [
-                      // Child Selection - Always show
-                      DropdownButtonFormField<String>(
-                        value: _selectedChildId,
-                        decoration: const InputDecoration(
-                          labelText: 'Select Child',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _children.map((child) {
-                          return DropdownMenuItem<String>(
-                            value: child['id'],
-                            child: Text(child['name']),
-                          );
-                        }).toList(),
-                        onChanged: (childId) {
-                          setState(() {
-                            _selectedChildId = childId;
-                          });
-                          _loadReports();
-                        },
+                      // Patient Dropdown Selector
+                      Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondaryLight,
+                              border: Border.all(color: AppTheme.secondary.withOpacity(0.3)),
+                            ),
+                            child: const Icon(Icons.face_rounded, color: AppTheme.secondary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedChildId,
+                              decoration: const InputDecoration(
+                                labelText: 'SELECT PATIENT',
+                                labelStyle: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.8,
+                                  color: AppTheme.secondary,
+                                ),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.border)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.border)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppTheme.secondary, width: 1.5)),
+                                filled: true,
+                                fillColor: AppTheme.background,
+                              ),
+                              items: _children.map((child) {
+                                return DropdownMenuItem<String>(
+                                  value: child['id'] as String?,
+                                  child: Text(
+                                    child['name'] ?? 'Unnamed Patient',
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (childId) {
+                                setState(() {
+                                  _selectedChildId = childId;
+                                });
+                                _loadReports();
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                       
                       const SizedBox(height: 12),
                       
-                      // Date Filters
+                      // Date Filter Bar
                       Row(
                         children: [
                           Expanded(
                             child: InkWell(
                               onTap: _selectStartDate,
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: AppTheme.background,
+                                  border: Border.all(color: _startDate != null ? AppTheme.secondary : AppTheme.border),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.calendar_today, size: 16),
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 14,
+                                      color: _startDate != null ? AppTheme.secondary : AppTheme.textSecondary,
+                                    ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         _startDate != null 
-                                            ? 'From: ${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
                                             : 'From Date',
                                         style: TextStyle(
-                                          color: _startDate != null ? Colors.black : Colors.grey,
+                                          fontSize: 12,
+                                          fontWeight: _startDate != null ? FontWeight.bold : FontWeight.normal,
+                                          color: _startDate != null ? AppTheme.textPrimary : AppTheme.textSecondary,
                                         ),
                                       ),
                                     ),
@@ -227,22 +385,28 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
                             child: InkWell(
                               onTap: _selectEndDate,
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: AppTheme.background,
+                                  border: Border.all(color: _endDate != null ? AppTheme.secondary : AppTheme.border),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.calendar_today, size: 16),
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 14,
+                                      color: _endDate != null ? AppTheme.secondary : AppTheme.textSecondary,
+                                    ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         _endDate != null 
-                                            ? 'To: ${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                                            ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
                                             : 'To Date',
                                         style: TextStyle(
-                                          color: _endDate != null ? Colors.black : Colors.grey,
+                                          fontSize: 12,
+                                          fontWeight: _endDate != null ? FontWeight.bold : FontWeight.normal,
+                                          color: _endDate != null ? AppTheme.textPrimary : AppTheme.textSecondary,
                                         ),
                                       ),
                                     ),
@@ -251,61 +415,39 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: _clearFilters,
-                            child: const Text('Clear'),
-                          ),
+                          if (_startDate != null || _endDate != null) ...[
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: _clearFilters,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.background,
+                                  border: Border.all(color: AppTheme.border),
+                                ),
+                                child: const Icon(Icons.close_rounded, size: 16, color: AppTheme.textSecondary),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       
-                      // Filter Summary
-                      if (_startDate != null || _endDate != null)
+                      // Filter count strip
+                      if (_startDate != null || _endDate != null) ...[
+                        const SizedBox(height: 8),
                         Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          padding: const EdgeInsets.all(8),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.blue[200]!),
+                            color: AppTheme.secondaryLight,
+                            border: Border.all(color: AppTheme.secondary.withOpacity(0.3)),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.filter_list, size: 16, color: Colors.blue[700]),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Showing ${_filteredReports.length} of ${_reports.length} reports',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue[700],
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Showing ${_filteredReports.length} of ${_reports.length} assessment records matching date filter',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.secondary),
                           ),
                         ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Report Type Info
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.assessment,
-                            color: Colors.blue,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Therapist Assessments Only',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF003366),
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -314,37 +456,48 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
                 Expanded(
                   child: _filteredReports.isEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.assessment,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No therapist assessments found',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                          child: Container(
+                            margin: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              border: Border.all(color: AppTheme.border),
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.assignment_outlined,
+                                  size: 48,
+                                  color: AppTheme.textMuted,
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Try adjusting your filters or check back later',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'No Assessment Reports Found',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
+                                  ),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Published clinical evaluations and domain assessments for this patient will appear here.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
                           ),
                         )
-                      : ListView.builder(
+                      : ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: _filteredReports.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final report = _filteredReports[index];
                             return _buildReportCard(report);
@@ -360,125 +513,134 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
     final createdAt = report['createdAt'] as Timestamp?;
     final date = createdAt?.toDate() ?? DateTime.now();
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 3,
-      child: InkWell(
-        onTap: () => _showReportDetails(report),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Colors.blue,
-              width: 2,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+    return InkWell(
+      onTap: () => _showReportDetails(report),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          border: Border.all(color: AppTheme.border),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 4,
+                color: AppTheme.secondary,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Therapist Assessment',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF003366),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Clinical Assessment Report',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Patient: ${report['childName'] ?? 'Unknown'}',
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'For: ${report['childName']}',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondaryLight,
+                              border: Border.all(color: AppTheme.secondary.withOpacity(0.3)),
+                            ),
+                            child: const Text(
+                              'ASSESSMENT',
+                              style: TextStyle(
+                                color: AppTheme.secondary,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'THERAPIST',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(height: 10),
+                      
+                      // Report Summary Box
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.background,
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'SUMMARY',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                                letterSpacing: 0.8,
+                                color: AppTheme.secondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              report['summary'] ?? 'No summary available for this assessment.',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, height: 1.4),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Report Summary
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Summary:',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF003366),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        report['summary'] ?? 'No summary available',
-                        style: const TextStyle(fontSize: 14),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                      
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textMuted),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Recorded: ${date.day}/${date.month}/${date.year}',
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            'Review Details',
+                            style: TextStyle(
+                              color: AppTheme.secondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppTheme.secondary),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Created: ${date.day}/${date.month}/${date.year}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Tap to view full report',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -486,92 +648,144 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
   }
 
   void _showReportDetails(Map<String, dynamic> report) {
-    final isTherapistReport = report['status'] == 'therapist_assessment';
-    
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        insetPadding: const EdgeInsets.all(16),
         child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            border: Border.all(color: AppTheme.border),
+          ),
           width: double.infinity,
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        isTherapistReport ? 'Therapist Assessment Report' : 'Parent Q&A Report',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF003366),
-                        ),
-                      ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryLight,
+                      border: Border.all(color: AppTheme.secondary.withOpacity(0.3)),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const Divider(),
-                const SizedBox(height: 16),
-                
-                Expanded(
-                  child: SingleChildScrollView(
+                    child: const Icon(Icons.assignment_rounded, color: AppTheme.secondary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildDetailRow('Child Name:', report['childName']),
-                        _buildDetailRow('Therapist:', report['therapistName']),
-                        _buildDetailRow('Date:', _formatDate(report['createdAt'])),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Report Content
-                        _buildSection('Summary', report['summary']),
-                        _buildSection('Recommendations', report['recommendations']),
-                        _buildSection('Next Session Focus', report['nextSessionFocus']),
+                        Text(
+                          'Therapist Assessment Report',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Comprehensive Clinical Evaluation',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    color: AppTheme.textSecondary,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: AppTheme.border),
+              const SizedBox(height: 12),
+              
+              // Key info strip
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  border: Border.all(color: AppTheme.border),
                 ),
-                
-                const SizedBox(height: 16),
-                Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _generatePDF(report),
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('Generate PDF'),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF003366)),
-                          padding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF003366),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.all(16),
-                        ),
-                        child: const Text('Close'),
-                      ),
-                    ),
+                    _buildDetailRow('Patient', report['childName']),
+                    _buildDetailRow('Therapist', report['therapistName']),
+                    _buildDetailRow('Date', _formatDate(report['createdAt'])),
                   ],
                 ),
-              ],
-            ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Scrollable Details Content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSection('Executive Summary', report['summary']),
+                      _buildSection('Clinical Recommendations', report['recommendations']),
+                      _buildSection('Next Session Focus', report['nextSessionFocus']),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _generatePDF(report),
+                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16, color: AppTheme.secondary),
+                      label: const Text(
+                        'Export PDF',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.secondary),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.secondary),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Dismiss',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -580,19 +794,22 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
 
   Widget _buildDetailRow(String label, String? value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 80,
             child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textSecondary),
             ),
           ),
           Expanded(
-            child: Text(value ?? 'N/A'),
+            child: Text(
+              value ?? 'N/A',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textPrimary),
+            ),
           ),
         ],
       ),
@@ -601,137 +818,37 @@ class _TherapistReportsPageState extends State<TherapistReportsPage> {
 
   Widget _buildSection(String title, String? content) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF003366),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                content ?? 'No information available',
-                style: const TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailedQASection(Map<String, dynamic> detailedAssessment) {
-    if (detailedAssessment['type'] != 'parent_qa') return const SizedBox();
-    
-    final questions = detailedAssessment['questions'] as List?;
-    final responses = detailedAssessment['responses'] as List?;
-    
-    if (questions == null || responses == null) return const SizedBox();
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Questions & Answers',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF003366),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...List.generate(questions.length, (index) {
-                if (index >= responses.length) return const SizedBox();
-                return _buildQAItem(index + 1, questions[index], responses[index]);
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQAItem(int number, String question, Map<String, dynamic> response) {
-    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(4),
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.border),
       ),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Q$number: $question',
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF003366),
-            ),
+          Row(
+            children: [
+              Container(width: 3, height: 12, color: AppTheme.secondary),
+              const SizedBox(width: 6),
+              Text(
+                title.toUpperCase(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 0.8,
+                  color: AppTheme.secondary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            'A: ${response['answer'] ?? 'No answer'}',
-            style: const TextStyle(fontSize: 14),
+            content ?? 'No information recorded for this section.',
+            style: const TextStyle(fontSize: 13, height: 1.5, color: AppTheme.textPrimary),
           ),
         ],
       ),
     );
-  }
-
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return 'Unknown date';
-    
-    try {
-      DateTime date;
-      if (timestamp is Timestamp) {
-        date = timestamp.toDate();
-      } else if (timestamp is String) {
-        date = DateTime.parse(timestamp);
-      } else {
-        return 'Unknown date';
-      }
-      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return 'Invalid date';
-    }
-  }
-
-  Future<void> _generatePDF(Map<String, dynamic> report) async {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Generating PDF...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-      
-      await PDFService.generateAndShareReport(report);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('PDF generated successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating PDF: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 }

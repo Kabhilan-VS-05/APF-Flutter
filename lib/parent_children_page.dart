@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/child_service.dart';
+import 'theme/app_theme.dart';
 
 class ParentChildrenPage extends StatefulWidget {
   final List<Map<String, dynamic>> children;
@@ -31,40 +31,72 @@ class _ParentChildrenPageState extends State<ParentChildrenPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('My Children'),
-        backgroundColor: const Color(0xFF003366),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'My Children',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppTheme.border),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : widget.children.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.child_care,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'No children registered yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryLight,
+                            borderRadius: BorderRadius.zero,
+                            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                          ),
+                          child: const Icon(
+                            Icons.child_care_rounded,
+                            size: 36,
+                            color: AppTheme.primary,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Register your first child to get started',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        const SizedBox(height: 18),
+                        const Text(
+                          'No Children Registered',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Registered children will appear here with clinical milestones.',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: AppTheme.textSecondary,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -94,9 +126,14 @@ class ChildCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.cardShadow,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -104,19 +141,25 @@ class ChildCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF003366),
-                  radius: 30,
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight,
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
+                  ),
+                  alignment: Alignment.center,
                   child: Text(
-                    (child['name'] ?? '')[0].toUpperCase(),
+                    (child['name'] ?? 'C')[0].toUpperCase(),
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
+                      color: AppTheme.primary,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,25 +167,26 @@ class ChildCard extends StatelessWidget {
                       Text(
                         child['name'] ?? 'Unknown Child',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16.5,
                           fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                          const Icon(Icons.cake_outlined, size: 14, color: AppTheme.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             'Age: ${child['age'] ?? 'N/A'}',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
                           ),
-                          const SizedBox(width: 16),
-                          Icon(Icons.wc, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 14),
+                          const Icon(Icons.person_outline, size: 14, color: AppTheme.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             child['gender'] ?? 'N/A',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
                           ),
                         ],
                       ),
@@ -151,19 +195,22 @@ class ChildCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             
-            // Action Button
+            // Action Button with Sharp Box Edges
             SizedBox(
               width: double.infinity,
+              height: 44,
               child: ElevatedButton.icon(
                 onPressed: onView,
-                icon: const Icon(Icons.visibility, size: 18),
-                label: const Text('View Details'),
+                icon: const Icon(Icons.visibility_outlined, size: 16),
+                label: const Text('View Clinical Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                 ),
               ),
             ),
@@ -182,8 +229,13 @@ class ChildDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.zero,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,45 +243,52 @@ class ChildDetailsDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Child Details',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                const Text(
+                  'Child Profile Details',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 20),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const Divider(color: AppTheme.border, height: 16),
+            const SizedBox(height: 8),
             
-            _buildDetailRow('Name', child['name']),
-            _buildDetailRow('Age', child['age']),
+            _buildDetailRow('Full Name', child['name']),
+            _buildDetailRow('Age', '${child['age'] ?? 'N/A'} years'),
             _buildDetailRow('Gender', child['gender']),
             _buildDetailRow('Diagnosis', child['diagnosis']),
             
             if (child['additionalInfo'] != null && child['additionalInfo'].toString().isNotEmpty) ...[
               const SizedBox(height: 12),
               const Text(
-                'Additional Information:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Clinical Notes / Info:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
               ),
               const SizedBox(height: 8),
               _buildAdditionalInfo(child['additionalInfo']),
             ],
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             
             SizedBox(
               width: double.infinity,
+              height: 44,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF003366),
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(16),
+                  elevation: 0,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                 ),
-                child: const Text('Close'),
+                child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -245,14 +304,17 @@ class ChildDetailsDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 90,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary),
             ),
           ),
           Expanded(
-            child: Text(value ?? 'N/A'),
+            child: Text(
+              value ?? 'N/A',
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5, color: AppTheme.textPrimary),
+            ),
           ),
         ],
       ),
@@ -260,7 +322,6 @@ class ChildDetailsDialog extends StatelessWidget {
   }
 
   Widget _buildAdditionalInfo(String additionalInfo) {
-    // Parse the additional info string and format without commas
     Map<String, String> infoMap = {};
     
     final parts = additionalInfo.split(',');
@@ -280,9 +341,9 @@ class ChildDetailsDialog extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
+        color: AppTheme.surfaceSubtle,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +351,7 @@ class ChildDetailsDialog extends StatelessWidget {
           if (infoMap['Parent Name'] != null) _buildInfoRow('Parent Name', infoMap['Parent Name']!),
           if (infoMap['Contact'] != null) _buildInfoRow('Contact', infoMap['Contact']!),
           if (infoMap['Parent Work'] != null) _buildInfoRow('Parent Work', infoMap['Parent Work']!),
-          if (infoMap['Therapist'] != null) _buildInfoRow('Therapist', infoMap['Therapist']!),
+          if (infoMap['Therapist'] != null) _buildInfoRow('Therapist ID', infoMap['Therapist']!),
         ],
       ),
     );
@@ -306,11 +367,11 @@ class ChildDetailsDialog extends StatelessWidget {
             width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF003366)),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary),
             ),
           ),
           Expanded(
-            child: Text(value),
+            child: Text(value, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
           ),
         ],
       ),
